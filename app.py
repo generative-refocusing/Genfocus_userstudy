@@ -95,7 +95,7 @@ else:
                     
                     # [關鍵 2] 讀取最新資料 (ttl=0 再次確保不快取)
                     # 這樣即使剛剛有人在你填寫時交卷了，你也會讀到他的資料，排在他後面
-                    existing_data = conn.read(worksheet="Sheet1", ttl=0)
+                    existing_data = conn.read(worksheet="Form Responses 1", ttl=0)
                     
                     # 處理空表的情況 (防止讀到全空的 DataFrame 報錯)
                     existing_data = existing_data.dropna(how="all")
@@ -105,7 +105,7 @@ else:
                     updated_df = pd.concat([existing_data, new_row], ignore_index=True)
                     
                     # [關鍵 4] 寫回 Google Sheet
-                    conn.update(worksheet="Sheet1", data=updated_df)
+                    conn.update(worksheet="Form Responses 1", data=updated_df)
                     
                     st.success(f"🎉 Thank you, {user_name}! Your responses have been recorded.")
                     st.balloons()
