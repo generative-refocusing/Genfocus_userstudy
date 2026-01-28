@@ -83,34 +83,46 @@ else:
         # 提交按鈕
         submitted = st.form_submit_button("Submit All Answers")
 
-    # --- 5. 提交後的處理邏輯 (在 Form 外面，解決 download_button 報錯) ---
+    # --- 5. 提交後的處理邏輯 ---
     if submitted:
         if None in responses.values():
             st.error("⚠️ You missed some questions. Please go back and answer all of them!")
         else:
-            with st.spinner("Saving your responses to Google Sheets..."):
+            with st.spinner("Uploading your data to the cloud..."):
                 try:
-                    # 讀取現有資料
-                    existing_data = conn.read()
-                    new_row = pd.DataFrame([responses])
+                    # [關鍵 1] 先清除快取，確保等等讀到的一定是當下最新版
+                    st.cache_data.clear()
+                    conn.clear_ttl() 
                     
-                    # 合併並上傳
+                    # [關鍵 2] 讀取最新資料 (ttl=0 再次確保不快取)
+                    # 這樣即使剛剛有人在你填寫時交卷了，你也會讀到他的資料，排在他後面
+                    existing_data = conn.read(worksheet="Sheet1", ttl=0)
+                    
+                    # 處理空表的情況 (防止讀到全空的 DataFrame 報錯)
+                    existing_data = existing_data.dropna(how="all")
+                    
+                    # [關鍵 3] 合併新資料
+                    new_row = pd.DataFrame([responses])
                     updated_df = pd.concat([existing_data, new_row], ignore_index=True)
-                    conn.update(data=updated_df)
+                    
+                    # [關鍵 4] 寫回 Google Sheet
+                    conn.update(worksheet="Sheet1", data=updated_df)
                     
                     st.success(f"🎉 Thank you, {user_name}! Your responses have been recorded.")
                     st.balloons()
+                    
+                    # 顯示你剛存進去的那一行讓使用者安心
+                    st.write("Your submission record:")
                     st.dataframe(new_row)
                     
                 except Exception as e:
-                    # 錯誤處理
+                    # 錯誤處理區塊 (維持不變)
                     if "No columns to parse" in str(e):
-                        st.error("Error: The Google Sheet is empty. Please add column headers (User, Q01, Q02...) to the first row.")
+                         st.error("Error: The Google Sheet is empty. Please add headers (User, Q01...).")
                     else:
                         st.error(f"Connection Error: {e}")
                     
-                    # 備案：手動下載
-                    st.warning("Could not save to Google Sheets. Please download your results and send them to the researcher manually.")
+                    st.warning("Could not save automatically. Please download CSV.")
                     csv_data = pd.DataFrame([responses]).to_csv(index=False).encode('utf-8')
                     st.download_button(
                         label="Download Results (CSV)",
