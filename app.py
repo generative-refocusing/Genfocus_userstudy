@@ -22,7 +22,7 @@ st.markdown("""
         margin-bottom: 2rem;
     }
     </style>
-    """, unsafe_allow_stdio=True)
+    """, unsafe_allow_html=True)
 
 st.title("📸 Genfocus Sharpness Comparison")
 st.markdown("""
